@@ -1,5 +1,5 @@
 GIT
-  remote: git://github.com/jcoyne/kaminari.git
+  remote: https://github.com/jcoyne/kaminari.git
   revision: 7f7108e12bdd64eb5a76177633768feb14df5453
   branch: sufia
   specs:
@@ -762,4 +762,4 @@ DEPENDENCIES
   xray-rails
 
 BUNDLED WITH
-   1.13.6
+   1.15.0
