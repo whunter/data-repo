@@ -55,7 +55,7 @@ end
 # Our dev/prod gems
 group :development, :production do
   gem "clamav"
-  gem "pg"
+  gem "pg", '~> 0.21.0'
 end
 
 #Sufia's gems
