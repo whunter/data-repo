@@ -1,18 +1,28 @@
 # -*- coding: utf-8 -*-
-class GenericFilesController < ApplicationController
+class GenericFilesController < OsfAuthController
   include Sufia::Controller
   include Sufia::FilesControllerBehavior
+  require 'vtech_data/osf_import_tools'
 
   self. presenter_class = DatarepoGenericFilePresenter
 
   self.edit_form_class = DatarepoFileEditForm
 
+  def new
+    super
+    @osf_logged_in = logged_in?
+    if @osf_logged_in
+      osf_import_tools = OsfImportTools.new(oauth_token, current_user)
+      @projects = osf_import_tools.get_user_projects
+    end
+  end
+
   def edit
-		super
-		unless current_user.admin?                                                                         
-			self.edit_form_class.terms -= [:provenance]                                                  
-			@provenance_display = "records/show_fields/provenance"
-		end 
+    super
+    unless current_user.admin?                                                                         
+      self.edit_form_class.terms -= [:provenance]                                                  
+      @provenance_display = "records/show_fields/provenance"
+    end 
   end
 
   # routed to /files/:id (PUT)
