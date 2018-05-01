@@ -130,33 +130,49 @@ class OsfImportTools
     metadata_obj['attributes'] = node_obj['data']['attributes']
     relationships = Hash.new
 
-    citation_link = node_obj['data']['relationships']['citation']['links']['related']['href']
-    relationships['citation'] = osf_get_object(citation_link)
+    begin
+      citation_link = node_obj['data']['relationships']['citation']['links']['related']['href']
+      relationships['citation'] = osf_get_object(citation_link)
+    rescue
+      Rails.logger.warn "Error getting citation metadata"
+    end
 
-    license_link = node_obj['data']['relationships']['license']['links']['related']['href']
-    license = osf_get_object(license_link)
-    relationships['license'] = license['data']['attributes']
+    begin
+      license_link = node_obj['data']['relationships']['license']['links']['related']['href']
+      license = osf_get_object(license_link)
+      relationships['license'] = license['data']['attributes']
+    rescue
+      Rails.logger.warn "Error getting license metadata"
+    end
 
-    contributors_link = node_obj['data']['relationships']['contributors']['links']['related']['href']
-    contributors = osf_get_object(contributors_link)
-    relationships['contributors'] = Array.new
-    contributors['data'].each do |data|
+    begin
+      contributors_link = node_obj['data']['relationships']['contributors']['links']['related']['href']
+      contributors = osf_get_object(contributors_link)
+      relationships['contributors'] = Array.new
+      contributors['data'].each do |data|
         relationships['contributors'] << data['embeds']['users']
+      end
+    rescue
+      Rails.logger.warn "Error getting contributors metadata"
     end
     
     metadata_obj['relationships'] = relationships
     xml_name = File.join(path, "#{node_obj['data']['id']}.xml")
     File.open(xml_name, 'wb'){ |file| file.write(metadata_obj.to_xml) }
     
-    wikis_link = node_obj['data']['relationships']['wikis']['links']['related']['href']
-    wikis = osf_get_object(wikis_link)
-    if wikis['data'].length > 0
-      wikis['data'].each do |data|
-        link = data['links']['download']
-        name = File.join(path, "#{data['attributes']['name']}.md")
-        wiki_content = osf_get(link)
-        File.open(name, 'wb'){ |file|file.write(wiki_content.body) } if !wiki_content.body.empty?
+    begin
+      wikis_link = node_obj['data']['relationships']['wikis']['links']['related']['href']
+      wikis = osf_get_object(wikis_link)
+      if wikis['data'].length > 0
+        wikis['data'].each do |data|
+          link = data['links']['download']
+          name = File.join(path, "#{data['attributes']['name']}.md")
+          wiki_content = osf_get(link)
+          File.open(name, 'wb'){ |file|file.write(wiki_content.body) } if !wiki_content.body.empty?
+        end
       end
+    rescue
+      Rails.logger.warn "Error creating wiki pages"
     end
   end
 
