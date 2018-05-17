@@ -1,14 +1,20 @@
 # OSF Integration
 
+
 ## Create an OSF Developer Application
 In order to integrate an application you must first register it with the Open Science Framework.
 This can be done by creating a Developer App here: [https://osf.io/settings/applications/](https://osf.io/settings/applications/)
 
 After your Developer App is created you will be given a Client ID and Client secret. These will need to be available to your application. In VTechData they are assigned to Rails secrets variables.
 ```
-Rails.application.secrets.osf.client_id = <your Client ID>
-Rails.application.secrets.osf.client_secret = <your Client secret>
+# In config/secrets.yml
+
+# OSF client settings
+osf:
+  client_id: <your client id>
+  client_secret: <your client secret>
 ```
+
 
 ## Authenticate with the OSF API
 In order to make calls to the OSF API the user must first be authenticated. This is handled in the [OsfAuthController class](https://github.com/VTUL/data-repo/blob/dev/app/controllers/osf_auth_controller.rb).
@@ -48,6 +54,7 @@ When the user is redirected back to the application the callback action will cre
     end
   end
 ```
+
 
 ## List the user's projects
 The [OsfImportTools class](https://github.com/VTUL/data-repo/blob/dev/lib/vtech_data/osf_import_tools.rb) provides methods used to make calls against the OSF API. Here it is used to query the API for a list of all of the logged in user's projects.
@@ -104,6 +111,7 @@ It uses helper methods from the same class to accomplish this.
 ```
 After building a list of all of the user's project they are then rendered in a simple [view partial](https://github.com/VTUL/data-repo/blob/dev/app/views/osf_api/list.html.erb). Each entry has links to the project in the OSF's interface as well as a link to the detail page for this project in VTechData.
 
+
 ## Show the details for a specific project
 If the user clicks a link for the detail page of a project then the [OsfImportTools class](https://github.com/VTUL/data-repo/blob/dev/lib/vtech_data/osf_import_tools.rb) will be used to query for a specific project and build an object that will be passed on to the detail view.
 ```
@@ -119,3 +127,52 @@ If the user clicks a link for the detail page of a project then the [OsfImportTo
     return project
   end
 ```
+
+Once this object is created it will be passed along to the [detail view](https://github.com/VTUL/data-repo/blob/dev/app/views/osf_api/detail.html.erb) for rendering.
+
+
+## Import OSF Project into VTechData
+
+When on the project detail page users will have the option to import their project into VTechData. This is again handled by the [OsfImportTools class](https://github.com/VTUL/data-repo/blob/dev/lib/vtech_data/osf_import_tools.rb) via the [import_project](https://github.com/VTUL/data-repo/blob/dev/lib/vtech_data/osf_import_tools.rb#L38-L101) method which recursively visits all of the nodes contained in the project with the [walk_nodes](https://github.com/VTUL/data-repo/blob/dev/lib/vtech_data/osf_import_tools.rb#L103-L125) method.
+
+This process takes some time so it is run in a background job
+```
+  # in app/controllers/osf_api_controller.rb
+
+  def import
+   Sufia.queue.push(OsfImportJob.new(@oauth_token, params["project_id"], current_user))
+   redirect_to '/dashboard', notice: 'Your project is currently being imported. You should receive an email when the process has completed.'
+  end
+```
+
+```
+  # in app/jobs/osf_import_job.rb
+  
+  def run
+    osf_import_tools = OsfImportTools.new(oauth_token, current_user)
+    osf_import_tools.import_project project_id
+  end
+```
+
+As each node is visited, metadata is recorded and associated files are downloaded and used to construct a zip file. 
+
+A GenericFile object is [created](https://github.com/VTUL/data-repo/blob/dev/lib/vtech_data/osf_import_tools.rb#L63-L74) based on the OSF project metadata and is put into Fedora.
+
+The zip file is then attached to the GenericFile record in Fedora.
+```
+  ingest_job = IngestLocalFileJob.new(item.id, tmp_path, project_name + '.zip', @current_user.user_key)
+  ingest_job.run
+```
+
+A Collection object is then [created](https://github.com/VTUL/data-repo/blob/dev/lib/vtech_data/osf_import_tools.rb#L81-L93) with OSF metadata and the GenericFile object is added as a member. This object is then also saved into Fedora.
+
+Finally, since this process is being run in a background job, an email is sent to the logged in user to inform them that the process has completed, either successfully or with errors.
+```
+  if(!item.id.nil? && !collection.id.nil?)
+    success = true      
+  else
+    success = false
+  end
+  OsfNotificationMailer.notification_email(success, collection.id, @current_user).deliver_later
+```
+
