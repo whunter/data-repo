@@ -12,27 +12,46 @@ class OsfImportTools
       me_obj = osf_get_object('https://api.osf.io/v2/users/me/')
       nodes_link = me_obj['data']['relationships']['nodes']['links']['related']['href']
       nodes_obj = osf_get_object(nodes_link)
+      nodes_hash = Hash.new
+      nodes_obj['data'].each do | project |
+        nodes_hash[project['id']] = project
+      end
       ret_val = nodes_obj['data'].map{ | project |
-        if project['attributes']['category'] == 'project'
-          contributors_link = project['relationships']['contributors']['links']['related']['href']
-          contributors_obj = osf_get_object(contributors_link)
-      	  { 
-            'id' => project['id'], 
-            'links' => project['links'], 
-            'attributes' => project['attributes'], 
-            'contributors' => contributors_obj['data'].map{| contributor | {
-              'name' => contributor['embeds']['users']['data']['attributes']['full_name'],
-              'creator' => contributor['attributes']['index'] == 0 ? true : false
-            }}
-          }
-        else
-          nil
+        path = project['attributes']['title']
+        parent = nodes_hash[project['relationships']['parent']['data']['id']] rescue nil
+        loop do
+          if !parent.nil?
+            path = "#{parent['attributes']['title']} / #{path}" 
+            parent = nodes_hash[parent['relationships']['parent']['data']['id']] rescue nil
+          else
+            break
+          end
         end
+        project['attributes']['path'] = path
+        contributors_link = project['relationships']['contributors']['links']['related']['href']
+        contributors_obj = osf_get_object(contributors_link)
+      	{ 
+          'id' => project['id'], 
+          'links' => project['links'], 
+          'attributes' => project['attributes'], 
+          'contributors' => contributors_obj['data'].map{| contributor | {
+            'name' => contributor['embeds']['users']['data']['attributes']['full_name'],
+            'creator' => contributor['attributes']['index'] == 0 ? true : false
+          }}
+        }
       }
     rescue
       ret_val = { errors: true } 
     end
     return ret_val
+  end
+
+  def get_parent_name node_url
+    node_obj = osf_get_object(node_url)
+    if !node_obj['data']['relationships']['parent'].nil?
+      parent_obj = osf_get_object(node_obj['data']['relationships']['parent']['links']['related']['href'])
+      return node_obj['data']['attributes']['title']
+    end
   end
 
   def import_project project_id
