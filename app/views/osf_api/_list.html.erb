@@ -3,7 +3,7 @@
 <% @projects.each do | project | %>
   <% if !project.nil? %>
     <div class="osf-project">
-      <h3><%= link_to project['attributes']['title'].html_safe, detail_route(project['id']) %></h3>
+      <h3><%= link_to project['attributes']['path'].html_safe, detail_route(project['id']) %></h3>
       <div class="date">Created: <%= DateTime.parse(project['attributes']['date_created']).strftime("%b %d %Y %k:%M:%N") %></div> 
       <div class="links"><%= link_to "Details", detail_route(project['id']) %> | <%= link_to "View in OSF site", project['links']['html'] %></div>
     </div>
