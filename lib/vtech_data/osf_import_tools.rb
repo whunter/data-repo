@@ -12,6 +12,18 @@ class OsfImportTools
       me_obj = osf_get_object('https://api.osf.io/v2/users/me/')
       nodes_link = me_obj['data']['relationships']['nodes']['links']['related']['href']
       nodes_obj = osf_get_object(nodes_link)
+      next_page = nodes_obj['links']['next']
+      loop do
+        if !next_page.nil?
+          next_obj = osf_get_object(next_page)
+          next_obj['data'].each do |item|
+            nodes_obj['data'].push(item)
+          end
+          next_page = next_obj['links']['next']
+        else
+          break
+        end
+      end
       nodes_hash = Hash.new
       nodes_obj['data'].each do | project |
         nodes_hash[project['id']] = project
