@@ -1,7 +1,13 @@
 # OSF Integration
 
+## Overview
 
-## Create an OSF Developer Application
+The University Libraries at Virginia Tech is continually attempting to explore new use cases for the VTechData repository, brainstorm ways to encourage more submissions, and find connections and integrations to make the repository more useful.  Throughout these efforts we have realized that the ability to pass objects from the OSF into the VTechData repository would provide a very large benefit to researchers in the community, allowing them to work collaboratively within the OSF and take advantage of the publishing and curation services offered through the Libraries. Pushed to production in early 2018, we project that this new service integration will allow researchers to more easily benefit from both the OSF and the data repository at Virginia Tech.
+
+
+## Implementation Notes:
+
+### Create an OSF Developer Application
 In order to integrate an application you must first register it with the Open Science Framework.
 This can be done by creating a Developer App here: [https://osf.io/settings/applications/](https://osf.io/settings/applications/)
 
@@ -16,7 +22,7 @@ osf:
 ```
 
 
-## Authenticate with the OSF API
+### Authenticate with the OSF API
 In order to make calls to the OSF API the user must first be authenticated. This is handled in the [OsfAuthController class](https://github.com/VTUL/data-repo/blob/dev/app/controllers/osf_auth_controller.rb).
 OSF utilizes the Oauth2 protocol for authentication so we're using the Oauth2 gem to create a client object. With the client object we can generate an authentication url that we will redirect to in order to login.
 We must provide a callback route that the user will redirected back to after successfully authenticating. The url for this route must be passed to OSF as a parameter in the authentication url.
@@ -56,7 +62,7 @@ When the user is redirected back to the application the callback action will cre
 ```
 
 
-## List the user's projects
+### List the user's projects
 The [OsfImportTools class](https://github.com/VTUL/data-repo/blob/dev/lib/vtech_data/osf_import_tools.rb) provides methods used to make calls against the OSF API. Here it is used to query the API for a list of all of the logged in user's projects.
 ```
   def get_user_projects
@@ -112,7 +118,7 @@ It uses helper methods from the same class to accomplish this.
 After building a list of all of the user's project they are then rendered in a simple [view partial](https://github.com/VTUL/data-repo/blob/dev/app/views/osf_api/list.html.erb). Each entry has links to the project in the OSF's interface as well as a link to the detail page for this project in VTechData.
 
 
-## Show the details for a specific project
+### Show the details for a specific project
 If the user clicks a link for the detail page of a project then the [OsfImportTools class](https://github.com/VTUL/data-repo/blob/dev/lib/vtech_data/osf_import_tools.rb) will be used to query for a specific project and build an object that will be passed on to the detail view.
 ```
   def get_project_details proj_url
@@ -131,7 +137,7 @@ If the user clicks a link for the detail page of a project then the [OsfImportTo
 Once this object is created it will be passed along to the [detail view](https://github.com/VTUL/data-repo/blob/dev/app/views/osf_api/detail.html.erb) for rendering.
 
 
-## Import OSF Project into VTechData
+### Import OSF Project into VTechData
 
 When on the project detail page users will have the option to import their project into VTechData. This is again handled by the [OsfImportTools class](https://github.com/VTUL/data-repo/blob/dev/lib/vtech_data/osf_import_tools.rb) via the [import_project](https://github.com/VTUL/data-repo/blob/dev/lib/vtech_data/osf_import_tools.rb#L38-L101) method which recursively visits all of the nodes contained in the project with the [walk_nodes](https://github.com/VTUL/data-repo/blob/dev/lib/vtech_data/osf_import_tools.rb#L103-L125) method.
 
