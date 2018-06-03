@@ -8,6 +8,7 @@ The code in this repository connects the Open Science Framework to the Samvera a
 
 We project that this new service integration will allow researchers to more easily benefit from both the OSF and the data repository at Virginia Tech, and through similar connections with other data repositories running on Samvera.
 
+This software is licensed under the Virginia Tech Non-Commerical Purpose license[https://github.com/JPetters2931/data-repo/blob/dev/SamveraOSF_VT_Noncommercial_Purpose_License.pdf]. Permission to use, copy, modify, and distribute this compilation for Non-Commercial Purpose is hereby granted without fee, subject to terms of this license.
 
 ## Implementation Notes:
 
