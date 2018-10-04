@@ -16,6 +16,7 @@ class DoiRequestsController < ApplicationController
     @asset = Collection.find(params[:asset_id])
     doi_request = DoiRequest.new(asset_id: params[:asset_id], asset_type: params[:asset_type])
     if doi_request.save && @asset.update_attributes({:identifier => @asset.identifier.to_a.push(t('doi.pending_doi'))})
+      DoiRequestedMailer.notification_email(doi_request).deliver_later
       flash[:notice] = t('doi.messages.submit.success')
       redirect_to collections.collection_path(@asset)
     else
